@@ -20,7 +20,7 @@ psycopg2-binary = "^2.9.10"  # For Alembic sync operations
 alembic = "^1.14.0"
 
 # Data validation
-pydantic = "^2.10.0"
+pydantic = {extras = ["email"], version = "^2.10.0"}
 pydantic-settings = "^2.7.0"
 
 # Task queue
