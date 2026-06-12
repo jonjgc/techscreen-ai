@@ -1,12 +1,16 @@
-# Backend Dockerfile — Multi-stage for production readiness
-FROM python:3.11-slim AS base
+# Backend Dockerfile
+FROM python:3.11-slim
 
 # Set environment variables
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PYTHONPATH=/app \
     PIP_NO_CACHE_DIR=1 \
-    PIP_DISABLE_PIP_VERSION_CHECK=1
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    POETRY_VERSION=1.8.3 \
+    POETRY_VIRTUALENVS_CREATE=false \
+    POETRY_NO_INTERACTION=1 \
+    POETRY_CACHE_DIR=/tmp/poetry_cache
 
 WORKDIR /app
 
@@ -18,25 +22,15 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Poetry
-RUN pip install poetry==1.8.3
-
-# Configure Poetry: don't create virtual envs inside Docker
-ENV POETRY_VENV_IN_PROJECT=false \
-    POETRY_NO_INTERACTION=1 \
-    POETRY_CACHE_DIR=/tmp/poetry_cache
+RUN pip install "poetry==1.8.3"
 
 # Copy dependency files first (better layer caching)
 COPY pyproject.toml poetry.lock* ./
 
-# Install dependencies
-RUN poetry config virtualenvs.create false \
-    && poetry install --no-root --no-dev 2>/dev/null || \
-       poetry install --no-root
+# Install all dependencies directly into the system Python (sem virtualenv)
+RUN poetry install --no-root
 
 # Copy application code
 COPY . .
-
-# Install the package itself
-RUN poetry install --only-root 2>/dev/null || true
 
 EXPOSE 8000
